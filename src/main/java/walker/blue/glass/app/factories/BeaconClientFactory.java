@@ -11,17 +11,32 @@ import walker.blue.beacon.lib.beacon.BluetoothDeviceToBeacon;
 import walker.blue.beacon.lib.client.BeaconClientBuilder;
 import walker.blue.beacon.lib.client.BeaconScanClient;
 
+
 /**
- * Created by noname on 1/24/15.
+ * Factory class to build BeaconScanClients
  */
 public class BeaconClientFactory {
 
+    /**
+     * Context used to create clients
+     */
     private Context context;
 
+    /**
+     * Constructor for the factory.
+     *
+     * @param context Context
+     */
     public BeaconClientFactory(final Context context) {
         this.context = context;
     }
 
+    /**
+     * Creates a BeaconScanClient used to check which building the user is in
+     * @param beacons Set of Beacons
+     * @param scanTime int
+     * @return
+     */
     public BeaconScanClient buildBuildingCheckClient(final Collection<Beacon> beacons, final int scanTime) {
         return new BeaconClientBuilder()
                 .scanInterval(scanTime)
@@ -30,6 +45,13 @@ public class BeaconClientFactory {
                 .build();
     }
 
+    /**
+     * Builds the LeScanCallback which is used in the BeaconScanClient used to
+     * check which building the user is in
+     *
+     * @param beacons Set of Beacons
+     * @return LeScanCallback
+     */
     private BluetoothAdapter.LeScanCallback buildBuildingCheckCallback(final Collection<Beacon> beacons) {
         return new BluetoothAdapter.LeScanCallback() {
             @Override
