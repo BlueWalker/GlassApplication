@@ -11,7 +11,6 @@ import walker.blue.beacon.lib.beacon.BluetoothDeviceToBeacon;
 import walker.blue.beacon.lib.client.BeaconClientBuilder;
 import walker.blue.beacon.lib.client.BeaconScanClient;
 
-
 /**
  * Factory class to build BeaconScanClients
  */
@@ -33,6 +32,7 @@ public class BeaconClientFactory {
 
     /**
      * Creates a BeaconScanClient used to check which building the user is in
+     *
      * @param beacons Set of Beacons
      * @param scanTime int
      * @return

@@ -3,5 +3,6 @@
 
     <string name="app_name">Blue Walker</string>
     <string name="voice_trigger">indoor directions</string>
+    <string name="choose_dest">choose your destination</string>
 
 </resources>
