@@ -2,18 +2,18 @@ buildscript {
     repositories {
         jcenter()
     }
+
     dependencies {
         classpath 'com.android.tools.build:gradle:1.0.0'
+        classpath 'com.acompagno:localcheck:0.1.+'
     }
 }
 
 apply plugin: 'com.android.application'
+apply plugin: 'com.acompagno.localcheck'
 
 repositories {
     jcenter()
-    flatDir {
-        dirs 'prebuilt-libs'
-    }
 }
 
 android {
@@ -32,29 +32,12 @@ android {
         sourceCompatibility JavaVersion.VERSION_1_7
         targetCompatibility JavaVersion.VERSION_1_7
     }
-
-    buildTypes {
-        release {
-            minifyEnabled false
-            proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
-        }
-    }
-}
-
-def checkLocal(String remote, String local) {
-    if (rootProject.subprojects.toString().contains(local)) {
-        println "[checkLocal] Using local dependency ${local} for project ${project.name}"
-        project(local)
-    } else {
-        println "[checkLocal] Using remote dependency ${remote} for project ${project.name}"
-        remote
-    }
 }
 
 dependencies {
     compile fileTree(dir: 'libs', include: ['*.jar'])
-    compile checkLocal('blue.walker:beacon-lib:0.1.+', ':Libraries:BeaconLib')
-    compile checkLocal('blue.walker:core:0.1.+', ':Libraries:Core')
+    compile LC.checkLocal('blue.walker:beacon-lib:0.1.+', 'BeaconLib')
+    compile LC.checkLocal('blue.walker:core:0.1.+', 'Core')
 }
 
 task wrapper(type: Wrapper) {
