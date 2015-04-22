@@ -5,8 +5,9 @@
     <string name="voice_trigger">indoor directions</string>
     <string name="choose_dest">choose your destination</string>
 
-    <string name="default_progress_str">calculating stuff...</string>
+    <string name="default_progress_str">initializing application...</string>
     
-    <string name="try_again">Please try again.</string>
+    <string name="try_again">please try again.</string>
+    <string name="arrived">arrived at destination</string>
 
 </resources>

@@ -5,9 +5,11 @@ import android.os.PowerManager;
 
 import java.util.List;
 
+import walker.blue.core.lib.init.InitError;
 import walker.blue.core.lib.init.InitializeProcess;
 import walker.blue.glass.app.R;
 import walker.blue.glass.app.factories.FragmentFactory;
+import walker.blue.glass.app.fragments.ArrivedFragment;
 
 /**
  * Runnable in charge of executing the Initialize process
@@ -22,24 +24,17 @@ public class RunInitProcess implements Runnable {
      * The voice input from the user
      */
     private List<String> userInput;
-    /**
-     * Wakelock keeping the device on
-     */
-    private PowerManager.WakeLock wakeLock;
 
     /**
      * Contructor. Sets the fields to the given values
      *
      * @param fragment Fragment under which the initialize process is running
      * @param userInput The voice input from the user
-     * @param wakeLock Wakelock keeping the device on
      */
     public RunInitProcess(final Fragment fragment,
-                          final List<String> userInput,
-                          final PowerManager.WakeLock wakeLock) {
+                          final List<String> userInput) {
         this.fragment = fragment;
         this.userInput = userInput;
-        this.wakeLock = wakeLock;
     }
 
     @Override
@@ -48,9 +43,11 @@ public class RunInitProcess implements Runnable {
         final InitializeProcess.Output output =  initializeProcess.call();
         final Fragment nextFragment;
         if (output.getError() != null) {
-            nextFragment = FragmentFactory.newFailedFragment(output.getError(), wakeLock);
+            nextFragment = output.getError() == InitError.ALREADY_ARRIVED ?
+                    new ArrivedFragment() :
+                    FragmentFactory.newFailedFragment(output.getError());
         } else {
-            nextFragment = FragmentFactory.newRunFragment(output, this.wakeLock);
+            nextFragment = FragmentFactory.newRunFragment(output);
         }
         this.fragment.getActivity().runOnUiThread(new Runnable() {
             @Override
@@ -61,14 +58,5 @@ public class RunInitProcess implements Runnable {
                         .commit();
             }
         });
-    }
-
-    /**
-     * Cleans up the runner
-     */
-    public void clean() {
-        if (this.wakeLock.isHeld()) {
-            this.wakeLock.release();
-        }
     }
 }

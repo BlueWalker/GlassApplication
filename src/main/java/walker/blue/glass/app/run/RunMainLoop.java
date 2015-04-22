@@ -1,28 +1,34 @@
 package walker.blue.glass.app.run;
 
 import android.app.Activity;
+import android.app.Fragment;
 import android.content.Context;
 import android.os.PowerManager;
+import android.speech.tts.TextToSpeech;
 import android.view.View;
+import android.widget.ImageView;
 import android.widget.TextView;
 
-import java.util.concurrent.Executors;
-import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.ScheduledFuture;
-import java.util.concurrent.TimeUnit;
-
+import walker.blue.core.lib.direction.OrientationManager;
+import walker.blue.core.lib.indicator.IndicatorView;
 import walker.blue.core.lib.init.InitializeProcess;
 import walker.blue.core.lib.main.MainLoop;
-import walker.blue.core.lib.main.SpeechSubmitRunnable;
 import walker.blue.core.lib.main.UserStateHandler;
+import walker.blue.core.lib.speech.SpeechSubmitHandler;
 import walker.blue.core.lib.user.UserState;
 import walker.blue.glass.app.R;
+import walker.blue.glass.app.activities.MainActivity;
+import walker.blue.glass.app.factories.FragmentFactory;
+import walker.blue.glass.app.fragments.ArrivedFragment;
+import walker.blue.glass.app.fragments.OffCourseFragment;
 
 /**
  * Runnable responsible for running the mainloop
  */
 public class RunMainLoop implements Runnable {
 
+
+    private boolean stop;
     /**
      * Output of the initialize process
      */
@@ -40,19 +46,54 @@ public class RunMainLoop implements Runnable {
      */
     private PowerManager.WakeLock wakeLock;
     /**
-     * Future for the speech submitter
+     * SpeechSubmitHandler used to submit speech in the mainloop
      */
-    private ScheduledFuture scheduledFuture;
+    private SpeechSubmitHandler speechSubmitHandler;
     /**
-     * Speech submitter runnable
+     * OrientationManager used get sensor data in the main loop
      */
-    private SpeechSubmitRunnable submitSpeechRunnable;
+    private OrientationManager orientationManager;
+
     /**
      * Handles what happend when the users state is found
      */
-    private UserStateHandler handler = new UserStateHandler() {
+    private UserStateHandler userStateHandler = new UserStateHandler() {
+
+        private static final int OFF_COURSE_MAX = 2;
+        private static final int WARNING_MAX = 5;
+
+        private int offCourseCount = 0;
+        private int warningZoneCount = 0;
+
         @Override
         public void newStateFound(final UserState userState) {
+            switch (userState) {
+                case OFF_COURSE:
+                    this.offCourseCount++;
+                    if (this.offCourseCount == OFF_COURSE_MAX) {
+                        final OffCourseFragment fragment = FragmentFactory.newOffCourseFragment(initOutput);
+                        switchContextFragment(fragment);
+                    }
+                    break;
+                case IN_WARNING_ZONE:
+                    this.warningZoneCount++;
+                    if (this.warningZoneCount == WARNING_MAX) {
+                        changeWarningIconVisibility(View.VISIBLE);
+                    }
+                    if (this.warningZoneCount % WARNING_MAX == 0) {
+                        speechSubmitHandler.warnUser();
+                    }
+                    break;
+                case ON_COURSE:
+                    this.offCourseCount = 0;
+                    this.warningZoneCount = 0;
+                    changeWarningIconVisibility(View.GONE);
+                    break;
+                case ARRIVED:
+                    final ArrivedFragment arrivedFragment = new ArrivedFragment();
+                    switchContextFragment(arrivedFragment);
+                    break;
+            }
         }
     };
 
@@ -62,33 +103,37 @@ public class RunMainLoop implements Runnable {
      * @param initOutput Output of the initialize process
      * @param rootView Root view of the RunFragment
      * @param context Context under which the mainloop is running
-     * @param wakeLock WakeLock keeping the device on
      */
     public RunMainLoop(final InitializeProcess.Output initOutput,
                        final View rootView,
-                       final Context context,
-                       final PowerManager.WakeLock wakeLock) {
+                       final Context context) {
         this.initOutput = initOutput;
         this.rootView = rootView;
         this.context = context;
         this.wakeLock = wakeLock;
+        this.stop = false;
+        this.orientationManager = ((MainActivity) context).getOrientationManager();
     }
 
     @Override
     public void run() {
+        this.stop = false;
+        final TextView nextIntructionText = (TextView) rootView.findViewById(R.id.actual_text);
         final TextView currentLocationText = (TextView) rootView.findViewById(R.id.location_text);
         final TextView currentUserStateText = (TextView) rootView.findViewById(R.id.state_text);
-        final MainLoop mainLoop = new MainLoop(initOutput, this.context, this.handler);
-
-        final ScheduledExecutorService executorService = Executors.newSingleThreadScheduledExecutor();
-        this.submitSpeechRunnable = new SpeechSubmitRunnable(mainLoop.getUserTracker(),
-                this.initOutput.getBuilding(),
-                this.initOutput.getPath(),
-                this.context);
-        this.scheduledFuture = executorService.scheduleWithFixedDelay(submitSpeechRunnable, 2, 10, TimeUnit.SECONDS);
+        final IndicatorView indicator = (IndicatorView) rootView.findViewById(R.id.indicator);
+        final TextToSpeech textToSpeech = ((MainActivity) context).getTextToSpeech();
+        this.speechSubmitHandler =
+                new SpeechSubmitHandler(textToSpeech, nextIntructionText, context);
+        final MainLoop mainLoop = new MainLoop(initOutput,
+                this.context,
+                this.userStateHandler,
+                this.orientationManager,
+                this.speechSubmitHandler,
+                indicator);
 
         UserState currentState = null;
-        while (currentState != UserState.ARRIVED) {
+        while (currentState != UserState.ARRIVED && !this.stop) {
             final MainLoop.Output loopOutput = mainLoop.call();
             ((Activity) this.context).runOnUiThread(new Runnable() {
                 @Override
@@ -105,17 +150,41 @@ public class RunMainLoop implements Runnable {
             });
             currentState = loopOutput.getUserState();
         }
-        this.clean();
     }
 
     /**
-     * Cleans up the runner
+     * Sets the flag to stop running the main loop
      */
-    public void clean() {
-        this.scheduledFuture.cancel(true);
-        this.submitSpeechRunnable.kill();
-        if (this.wakeLock.isHeld()) {
-            this.wakeLock.release();
+    public void stopTask() {
+        this.stop = true;
+    }
+
+    /**
+     * Switches the fragment
+     *
+     * @param newFragment new fragment set
+     */
+    private void switchContextFragment(final Fragment newFragment) {
+        ((Activity) context).getFragmentManager()
+                .beginTransaction()
+                .replace(R.id.content_frame, newFragment)
+                .commit();
+    }
+
+    /**
+     * Sets the visibility of the warning icon to the given value
+     *
+     * @param visibility new value fo the visibility fo the warning icon
+     */
+    private void changeWarningIconVisibility(final int visibility) {
+        final ImageView warnImage = (ImageView) rootView.findViewById(R.id.warn_img);
+        if (warnImage != null && warnImage.getVisibility() != visibility) {
+            ((Activity) this.context).runOnUiThread(new Runnable() {
+                @Override
+                public void run() {
+                    warnImage.setVisibility(visibility);
+                }
+            });
         }
     }
 }

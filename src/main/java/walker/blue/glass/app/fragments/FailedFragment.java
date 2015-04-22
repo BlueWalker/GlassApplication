@@ -1,6 +1,7 @@
 package walker.blue.glass.app.fragments;
 
 import android.annotation.SuppressLint;
+import android.app.Fragment;
 import android.os.Bundle;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -8,13 +9,17 @@ import android.view.ViewGroup;
 import android.widget.LinearLayout;
 import android.widget.TextView;
 
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
+
 import walker.blue.core.lib.init.InitError;
 import walker.blue.glass.app.R;
 
 /**
  * Fragment used to display an error message from the initialize process
  */
-public class FailedFragment extends EndFragmentBase {
+public class FailedFragment extends Fragment {
 
     /**
      * Error type
@@ -27,9 +32,6 @@ public class FailedFragment extends EndFragmentBase {
                              final ViewGroup container,
                              final Bundle savedInstanceState) {
         final LinearLayout mainLinear = (LinearLayout) inflater.inflate(R.layout.failed_layout, null);
-        if (this.wakeLock.isHeld()) {
-            this.wakeLock.release();
-        }
         final TextView reasonText = (TextView) mainLinear.findViewById(R.id.reason_failed);
         switch (this.error) {
             case BD_FAIL:
@@ -54,6 +56,14 @@ public class FailedFragment extends EndFragmentBase {
                 reasonText.setText("Failed calculating path");
                 break;
         }
+        final ScheduledExecutorService closeAppExecutor = Executors.newSingleThreadScheduledExecutor();
+        final Runnable closeRunnable = new Runnable() {
+            @Override
+            public void run() {
+                getActivity().finish();
+            }
+        };
+        closeAppExecutor.schedule(closeRunnable, 5, TimeUnit.SECONDS);
         return mainLinear;
     }
 

@@ -5,9 +5,32 @@
               android:layout_height="match_parent">
 
     <TextView
+        android:id="@+id/actual_text"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
+        android:textAlignment="center"
         android:textSize="30dp"
+        android:layout_gravity="center"/>
+
+    <ImageView
+        android:id="@+id/warn_img"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:src="@android:drawable/stat_sys_warning"
+        android:layout_gravity="center"
+        android:visibility="gone"/>
+
+    <walker.blue.core.lib.indicator.IndicatorView
+        android:id="@+id/indicator"
+        android:layout_width="fill_parent"
+        android:layout_height="fill_parent"/>
+
+    <!--android:visibility="gone"-->
+
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:textSize="15dp"
         android:text="location"
         android:layout_gravity="center"/>
 
@@ -15,14 +38,14 @@
         android:id="@+id/location_text"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:textSize="30dp"
+        android:textSize="15dp"
         android:text="user_state"
         android:layout_gravity="center"/>
 
     <TextView
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:textSize="30dp"
+        android:textSize="15dp"
         android:text="user_state"
         android:layout_gravity="center"/>
 
@@ -30,7 +53,7 @@
         android:id="@+id/state_text"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:textSize="30dp"
+        android:textSize="15dp"
         android:text="user_state"
         android:layout_gravity="center"/>
 </LinearLayout>

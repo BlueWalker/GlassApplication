@@ -1,7 +1,9 @@
 package walker.blue.glass.app.fragments;
 
 import android.annotation.SuppressLint;
+import android.app.Fragment;
 import android.os.Bundle;
+import android.speech.tts.TextToSpeech;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -13,12 +15,13 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
 import walker.blue.glass.app.R;
+import walker.blue.glass.app.activities.MainActivity;
 import walker.blue.glass.app.run.RunInitProcess;
 
 /**
  * Fragment displayed while application is initializing
  */
-public class InitFragment extends EndFragmentBase {
+public class InitFragment extends Fragment {
 
     /**
      * Text displayed
@@ -38,8 +41,10 @@ public class InitFragment extends EndFragmentBase {
         final LinearLayout rootView = (LinearLayout) inflater.inflate(R.layout.progress_layout, null);
         final TextView textView = (TextView) rootView.findViewById(R.id.progress_text);
         textView.setText(INITIALIZING_APPLICATION);
+        final TextToSpeech textToSpeech = ((MainActivity) this.getActivity()).getTextToSpeech();
+        textToSpeech.speak(INITIALIZING_APPLICATION, TextToSpeech.QUEUE_FLUSH, null);
         final ExecutorService executorService = Executors.newSingleThreadExecutor();
-        executorService.submit(new RunInitProcess(this, this.userInput, this.wakeLock));
+        executorService.submit(new RunInitProcess(this, this.userInput));
         return rootView;
     }
 
@@ -50,5 +55,10 @@ public class InitFragment extends EndFragmentBase {
      */
     public void setUserInput(final List<String> userInput) {
         this.userInput = userInput;
+    }
+
+    @Override
+    public void onPause() {
+        super.onPause();
     }
 }
