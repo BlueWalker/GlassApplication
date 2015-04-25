@@ -1,7 +1,6 @@
 package walker.blue.glass.app.run;
 
 import android.app.Fragment;
-import android.os.PowerManager;
 
 import java.util.List;
 
